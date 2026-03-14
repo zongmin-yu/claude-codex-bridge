@@ -1,0 +1,19 @@
+{
+  "name": "codex-control-plane",
+  "version": "0.1.0",
+  "description": "Role-specialized delegation from Claude Code to Codex CLI - research, review, and code with verification",
+  "author": {
+    "name": "zongmin-yu"
+  },
+  "homepage": "https://github.com/zongmin-yu/codex-control-plane#readme",
+  "repository": "https://github.com/zongmin-yu/codex-control-plane",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "delegation",
+    "control-plane",
+    "research",
+    "review",
+    "coding"
+  ]
+}
