@@ -1,19 +1,10 @@
 {
-  "name": "codex-control-plane",
+  "name": "claude-codex-bridge",
   "version": "0.1.0",
-  "description": "Role-specialized delegation from Claude Code to Codex CLI - research, review, and code with verification",
-  "author": {
-    "name": "zongmin-yu"
-  },
-  "homepage": "https://github.com/zongmin-yu/codex-control-plane#readme",
-  "repository": "https://github.com/zongmin-yu/codex-control-plane",
+  "description": "Use Codex as a sub-agent inside Claude Code skills",
+  "author": { "name": "zongmin-yu" },
+  "homepage": "https://github.com/zongmin-yu/claude-codex-bridge#readme",
+  "repository": "https://github.com/zongmin-yu/claude-codex-bridge",
   "license": "MIT",
-  "keywords": [
-    "codex",
-    "delegation",
-    "control-plane",
-    "research",
-    "review",
-    "coding"
-  ]
+  "keywords": ["codex", "sub-agent", "bridge", "delegation", "dual-model"]
 }

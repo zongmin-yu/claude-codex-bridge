@@ -1,116 +1,98 @@
-# Codex Control Plane
+# claude-codex-bridge
 
-Reviewable Codex delegation for Claude Code.
+Use [Codex CLI](https://github.com/openai/codex) as a sub-agent inside [Claude Code](https://claude.com/claude-code) skills.
 
-**Philosophy:** `先卖 loop，再卖 lattice`  
-Sell the repeatable delegation loop first. Expand to the wider role lattice later.
-
-Codex Control Plane is a Claude Code plugin for people who already like both tools and want cleaner orchestration between them. Claude stays in the alignment and interaction seat. Codex does the primary execution work. The plugin adds role routing, least-privilege sandboxes, verification, and consistent result reporting.
-
-## Three Questions
-
-v0.1 ships three public skills:
-
-- `codex-control-plane:research` answers "What's here?" and "What is true?" for a codebase or technical question.
-- `codex-control-plane:review` answers "Is it good?" for code, diffs, branches, or modules.
-- `codex-control-plane:coding` answers "Build this." from a plan file with verification against acceptance criteria.
-
-The larger architecture is documented in [docs/architecture.md](docs/architecture.md). The dispatch contract is documented in [docs/protocol.md](docs/protocol.md).
-
-## Why This Exists
-
-This project is not trying to outcompete the capability layer. `codex exec` is the capability layer. The value here is the control plane on top:
-
-- role-specialized routing
-- least-privilege sandboxes by role
-- explicit verify loops
-- resumable Codex sessions
-- predictable artifacts and result blocks
-
-That makes delegation easier to inspect, repeat, and trust.
-
-## Prerequisites
-
-- Claude Code installed and authenticated
-- Claude Code 1.0.33 or later
-- Codex CLI installed, authenticated, and available as `codex` on your `PATH`
+Claude excels at conversation and alignment. Codex excels at deep reasoning and code generation. This bridge lets you combine both — Claude orchestrates, Codex executes.
 
 ## Install
 
-For local development or testing, run Claude Code with the plugin directory directly:
+```bash
+claude plugin install github:zongmin-yu/claude-codex-bridge
+```
+
+Then use `/codex` in any Claude Code conversation:
+
+```
+/codex investigate why the auth tests are flaky in src/auth/
+```
+
+## The Pattern
+
+Every Codex-powered skill follows three steps:
+
+### 1. Build the prompt
+
+Turn the user's request into a self-contained instruction for Codex. Point to files by absolute path — don't paste contents.
+
+### 2. Dispatch
 
 ```bash
-claude --plugin-dir /absolute/path/to/codex-control-plane
+codex exec --full-auto --sandbox read-only \
+  -C "/path/to/repo" \
+  "Your prompt here" 2>/dev/null
 ```
 
-Then use the namespaced skills:
+Pick a sandbox level:
+| Level | Can read | Can write | Has network | Use for |
+|-------|----------|-----------|-------------|---------|
+| `read-only` | Yes | No | No | Research, review |
+| `network-only` | Yes | Yes | No | Coding |
+| `full` | Yes | Yes | Yes | Tasks needing network |
 
-```text
-/codex-control-plane:research ...
-/codex-control-plane:review ...
-/codex-control-plane:coding ...
-```
+### 3. Verify
 
-When you publish this repo through a marketplace, users can install it with:
+Check that Codex produced what was asked. If something is missing, resume:
 
 ```bash
-claude plugin install codex-control-plane@<marketplace-name>
+echo "Also check the edge case for empty input" | codex exec resume <session-id> 2>/dev/null
 ```
 
-## Quick Start
+That's it. The `/codex` skill included in this plugin implements exactly this pattern.
 
-### 1. What's in this codebase?
+## Build Your Own
 
-```text
-/codex-control-plane:research /absolute/path/to/repo Trace how authentication tokens are refreshed.
+The real power is creating specialized skills for your workflow. Copy `examples/template.md` to `skills/<name>/SKILL.md` and fill in:
+
+- What arguments your skill takes
+- How to build the prompt for Codex
+- What sandbox level to use
+- How to verify the result
+
+See `examples/` for reference implementations:
+- [`research.md`](examples/research.md) — investigate codebases
+- [`coding.md`](examples/coding.md) — implement features
+- [`review.md`](examples/review.md) — code review
+
+## Advanced
+
+### Session Resume
+
+Every `codex exec` prints a session ID. Save it to continue a conversation:
+
+```bash
+echo "Follow-up question" | codex exec resume <session-id> 2>/dev/null
 ```
 
-By default the skill writes a markdown artifact in the current working directory. If you want a different location, tell Claude the exact output path or base directory.
+### Reasoning Effort
 
-### 2. Is this code good?
+For complex tasks, increase reasoning:
 
-```text
-/codex-control-plane:review /absolute/path/to/repo Review the latest diff for correctness, regressions, and missing tests.
+```bash
+codex exec --full-auto --sandbox read-only \
+  --config model_reasoning_effort="high" \
+  -C "/path/to/repo" "Your prompt" 2>/dev/null
 ```
 
-The review skill produces a report with scoped findings, severity, evidence, and priority actions.
+### Cross-Repo Work
 
-### 3. Build this.
+Point Codex at any directory. One skill can work across multiple repos by dispatching separate `codex exec` calls with different `-C` paths.
 
-```text
-/codex-control-plane:coding /absolute/path/to/plan.md
-```
+## Requirements
 
-The coding skill reads the plan first, dispatches implementation to Codex with `workspace-write`, and verifies the result against the plan before reporting back.
+- [Claude Code](https://claude.com/claude-code) installed
+- [Codex CLI](https://github.com/openai/codex) installed (`npm install -g @openai/codex`)
+- `OPENAI_API_KEY` set in your environment
 
-## How The Loop Works
+## License
 
-The public workflow is a simple, reviewable loop:
-
-1. `research` clarifies what is true.
-2. `coding` changes the code from a plan.
-3. `review` checks the result for bugs, risks, and missing coverage.
-
-That loop is the product in v0.1. The wider role lattice comes later.
-
-## What This Is Not
-
-- Not a generic one-shot `/codex` wrapper.
-- Not a hidden adapter for one person's private repo layout.
-- Not an autopilot system or danger-mode release.
-- Not a replacement for human review or project-specific conventions.
-
-## Architecture
-
-See [docs/architecture.md](docs/architecture.md) for the full six-role vision and which roles are public in v0.1.
-
-## Protocol
-
-See [docs/protocol.md](docs/protocol.md) for the clean reference version of the dispatch, verify, and result contract. Each shipped skill also inlines the protocol so the plugin remains fully self-contained after installation.
-
-## Sources
-
-The install and plugin-layout guidance used in this repo comes from the official Claude Code plugin docs:
-
-- https://code.claude.com/docs/en/plugins
-- https://code.claude.com/docs/en/plugins-reference
+MIT
